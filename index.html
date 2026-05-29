@@ -3,197 +3,125 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ショート動画エディタ</title>
+  <title>AI ショート動画エディタ</title>
   <link rel="stylesheet" href="style.css">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700&display=swap" rel="stylesheet">
 </head>
 <body>
 
-<!-- ヘッダー -->
 <header id="header">
   <div id="header-title">
-    <span class="icon">&#127916;</span>
-    <span>ショート動画エディタ</span>
+    <span>🎬</span>
+    <span>AI ショート動画エディタ</span>
   </div>
   <div id="header-actions">
     <div id="ffmpeg-status" class="status-badge">FFmpeg: 未読込</div>
-    <button id="btn-export" class="btn btn-primary" disabled>
-      &#11015; MP4 ダウンロード
-    </button>
+    <button id="btn-api-key" class="btn btn-secondary">⚙ APIキー設定</button>
+    <button id="btn-export" class="btn btn-primary" disabled>⬇ MP4 ダウンロード</button>
   </div>
 </header>
 
-<!-- メインレイアウト -->
 <div id="main">
 
-  <!-- 左パネル: クリップ管理 -->
+  <!-- 左パネル: 素材管理 -->
   <aside id="left-panel">
+
     <div class="panel-section">
-      <h2 class="panel-title">動画クリップ</h2>
-      <!-- ドロップゾーン -->
+      <div class="panel-title">動画クリップ</div>
       <div id="drop-zone">
-        <div id="drop-zone-inner">
-          <div class="drop-icon">&#128250;</div>
-          <p>動画をここにドロップ</p>
-          <p class="sub">または</p>
-          <button id="btn-add-video" class="btn btn-secondary">動画を選択</button>
-          <input type="file" id="file-input" accept="video/*" multiple hidden>
-          <p class="hint">iOS は1ファイルずつ追加してください</p>
-        </div>
+        <div>🎥</div>
+        <p>動画をドロップ または</p>
+        <button id="btn-add-video" class="btn btn-secondary btn-sm">ファイルを選択</button>
+        <input type="file" id="file-input" accept="video/*" multiple hidden>
       </div>
-      <!-- クリップ一覧 -->
       <div id="clip-list"></div>
     </div>
 
-    <!-- 選択クリップのトリム設定 -->
-    <div class="panel-section" id="trim-panel" style="display:none">
-      <h2 class="panel-title">トリム設定</h2>
-      <div class="form-row">
-        <label>開始 (秒)</label>
-        <input type="number" id="trim-in" min="0" step="0.1" value="0">
-      </div>
-      <div class="form-row">
-        <label>終了 (秒)</label>
-        <input type="number" id="trim-out" min="0" step="0.1" value="0">
-      </div>
-      <div class="form-row">
-        <label>長さ</label>
-        <span id="trim-duration">0.0 秒</span>
-      </div>
-      <input type="range" id="trim-in-slider" min="0" max="100" step="0.1" value="0" class="range-slider">
-      <div class="range-labels"><span>開始</span><span>終了</span></div>
-      <input type="range" id="trim-out-slider" min="0" max="100" step="0.1" value="100" class="range-slider">
-    </div>
-
-    <!-- BGM設定 -->
     <div class="panel-section">
-      <h2 class="panel-title">BGM</h2>
-      <div id="bgm-drop-zone" class="audio-drop-zone">
-        <span>&#127925; 音楽ファイルを選択</span>
+      <div class="panel-title">BGM（音楽）</div>
+      <div id="bgm-zone">
+        <div>🎵</div>
+        <p>音楽ファイルをドロップ または</p>
+        <button id="btn-add-bgm" class="btn btn-secondary btn-sm">ファイルを選択</button>
         <input type="file" id="bgm-input" accept="audio/*" hidden>
       </div>
       <div id="bgm-info" style="display:none">
-        <p id="bgm-name" class="file-name"></p>
-        <button id="btn-remove-bgm" class="btn btn-danger btn-sm">削除</button>
-      </div>
-      <div class="form-row">
-        <label>音量</label>
-        <input type="range" id="bgm-volume" min="0" max="1" step="0.05" value="0.5" class="range-slider">
-        <span id="bgm-volume-label">50%</span>
+        <span id="bgm-name" class="chip">🎵 <span id="bgm-name-text"></span></span>
+        <button id="btn-remove-bgm" class="btn-icon" title="削除">✕</button>
       </div>
     </div>
+
+    <!-- 現在の編集状態 -->
+    <div class="panel-section" id="edit-state-panel" style="display:none">
+      <div class="panel-title">現在の編集内容</div>
+      <div id="edit-state-list"></div>
+    </div>
+
   </aside>
 
-  <!-- 中央: プレビュー + タイムライン -->
-  <div id="center-panel">
-    <!-- プレビューエリア -->
+  <!-- 右エリア: プレビュー + チャット -->
+  <div id="right-panel">
+
+    <!-- プレビュー -->
     <div id="preview-area">
       <div id="preview-wrapper">
         <canvas id="preview-canvas" width="405" height="720"></canvas>
-        <div id="preview-placeholder">
-          <p>動画を追加してください</p>
-        </div>
+        <div id="preview-placeholder">動画を追加してください</div>
       </div>
       <div id="playback-controls">
-        <button id="btn-rewind" class="ctrl-btn" title="最初に戻る">&#9198;</button>
-        <button id="btn-play" class="ctrl-btn btn-play-main" title="再生/一時停止">&#9654;</button>
-        <button id="btn-forward" class="ctrl-btn" title="5秒進む">&#9197;</button>
+        <button id="btn-rewind" class="ctrl-btn">⏮</button>
+        <button id="btn-play" class="ctrl-btn btn-play-main">▶</button>
         <span id="timecode">00:00 / 00:00</span>
       </div>
     </div>
 
-    <!-- タイムライン -->
-    <div id="timeline-area">
-      <div id="timeline-header">
-        <span class="track-label">映像</span>
-        <div id="timeline-ruler"></div>
-      </div>
-      <div id="timeline-tracks">
-        <div class="track-label-col">
-          <div class="track-label">クリップ</div>
-          <div class="track-label">音楽</div>
-        </div>
-        <div id="timeline-scroll-area">
-          <div id="video-track"></div>
-          <div id="audio-track">
-            <div id="bgm-track-bar" style="display:none">
-              <span id="bgm-track-label">BGM</span>
-            </div>
+    <!-- チャット -->
+    <div id="chat-area">
+      <div id="chat-messages">
+        <div class="msg msg-ai">
+          <div class="msg-bubble">
+            👋 こんにちは！<br>
+            動画とBGMを追加してから、編集の要望を入力してください。<br><br>
+            例：「最初の動画は5秒にして、下に"新商品登場"というテキストを入れて」<br>
+            「BGMを小さめにして、全クリップを3秒ずつにして」
           </div>
-          <div id="playhead"></div>
         </div>
+      </div>
+      <div id="chat-input-area">
+        <textarea id="chat-input" placeholder="編集の要望を入力... (Shift+Enterで改行、Enterで送信)" rows="2"></textarea>
+        <button id="btn-send" class="btn btn-primary" disabled>送信</button>
       </div>
     </div>
 
-    <!-- オーバーレイエディタ -->
-    <div id="overlay-editor">
-      <h2 class="panel-title">テキストオーバーレイ</h2>
-      <div id="overlay-form">
-        <div class="form-row">
-          <label>テキスト</label>
-          <input type="text" id="overlay-text" placeholder="表示するテキスト" maxlength="60">
-        </div>
-        <div class="form-row-inline">
-          <div class="form-row">
-            <label>開始 (秒)</label>
-            <input type="number" id="overlay-start" min="0" step="0.1" value="0">
-          </div>
-          <div class="form-row">
-            <label>終了 (秒)</label>
-            <input type="number" id="overlay-end" min="0" step="0.1" value="3">
-          </div>
-        </div>
-        <div class="form-row-inline">
-          <div class="form-row">
-            <label>文字サイズ</label>
-            <input type="number" id="overlay-fontsize" min="12" max="120" value="40">
-          </div>
-          <div class="form-row">
-            <label>文字色</label>
-            <input type="color" id="overlay-color" value="#ffffff">
-          </div>
-          <div class="form-row">
-            <label>背景色</label>
-            <input type="color" id="overlay-bgcolor" value="#000000">
-          </div>
-        </div>
-        <div class="form-row">
-          <label>位置</label>
-          <div id="position-btns">
-            <button class="pos-btn active" data-pos="top">上</button>
-            <button class="pos-btn" data-pos="center">中央</button>
-            <button class="pos-btn" data-pos="bottom">下</button>
-          </div>
-        </div>
-        <div class="form-row-inline">
-          <label class="checkbox-label">
-            <input type="checkbox" id="overlay-bold"> 太字
-          </label>
-        </div>
-        <button id="btn-add-overlay" class="btn btn-secondary">+ テキストを追加</button>
-      </div>
-
-      <!-- オーバーレイ一覧 -->
-      <div id="overlay-list"></div>
-    </div>
   </div>
 
 </div>
 
-<!-- エクスポートプログレス -->
+<!-- APIキー設定モーダル -->
+<div id="api-modal" style="display:none">
+  <div id="api-modal-inner">
+    <h2>Gemini API キー設定</h2>
+    <p class="modal-desc">
+      Google AI Studio（<a href="https://aistudio.google.com/app/apikey" target="_blank">aistudio.google.com</a>）で無料取得できます。
+    </p>
+    <input type="password" id="api-key-input" placeholder="AIzaSy...">
+    <div class="modal-actions">
+      <button id="btn-save-key" class="btn btn-primary">保存</button>
+      <button id="btn-cancel-key" class="btn btn-secondary">キャンセル</button>
+    </div>
+  </div>
+</div>
+
+<!-- エクスポートモーダル -->
 <div id="export-modal" style="display:none">
   <div id="export-modal-inner">
     <h2>動画を作成中...</h2>
-    <div id="progress-bar-wrap">
-      <div id="progress-bar"></div>
-    </div>
+    <div id="progress-bar-wrap"><div id="progress-bar"></div></div>
     <p id="progress-label">0%</p>
     <p id="export-status-text">FFmpegを読み込んでいます...</p>
   </div>
 </div>
 
-<!-- 非表示の動画要素（サムネイル生成用） -->
 <video id="thumb-video" muted playsinline style="display:none"></video>
 
 <script type="module" src="app.js"></script>
